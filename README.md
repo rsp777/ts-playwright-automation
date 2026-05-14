@@ -70,10 +70,10 @@ npx playwright show-report
 [x] Created login.spec.ts with direct locators and end-to-end assertions.
 
 ## **Phase 2: Page Object Model (POM) Refactoring (Up Next)**
-[ ] Create a pages/ directory.
+[x] Create a pages/ directory.
 
-[ ] Extract raw locators from login.spec.ts into a dedicated LoginPage.ts class.
+[x] Extract raw locators from login.spec.ts into a dedicated LoginPage.ts class.
 
-[ ] Create functional action methods (e.g., navigate(), login()) inside the Page Object.
+[x] Create functional action methods (e.g., navigate(), login()) inside the Page Object.
 
-[ ] Refactor the spec file to instantiate the LoginPage class, keeping only the test data and assertions.
+[x] Refactor the spec file to instantiate the LoginPage class, keeping only the test data and assertions.
