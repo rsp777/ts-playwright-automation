@@ -1,0 +1,46 @@
+name: Playwright Tests
+
+# 1. When should this pipeline run?
+on:
+  # 1.1. Run on push to the main branch
+  push:
+    branches: [ main ]
+  # 1.2. Run on pull request to the main branch
+  pull_request:
+    branches: [ main ]
+  # 1.3. Run manually from the Actions tab
+  workflow_dispatch:
+
+# 2. Define the jobs to run
+jobs:
+    test:
+        timeout-minutes: 60
+        runs-on: ubuntu-latest
+
+
+        steps:
+          - name: Checkout Repo
+            uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '18'
+
+          - name: Install Dependencies
+            run: npm ci
+
+          - name: Install Playwright Browsers
+            run : npx playwright install --with-deps
+
+          - name: Run Playwright Tests
+            run: npx playwright test
+
+          # 3. Save the report so you can download it later           
+          - name: Upload Playwright Report
+            uses: actions/upload-artifact@v4
+            if: always() # Upload the report even if the tests fail
+            with:
+              name : playwright-report
+              path : playwright-report/
+              retention-days: 30
