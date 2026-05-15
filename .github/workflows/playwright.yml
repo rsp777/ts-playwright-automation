@@ -13,43 +13,59 @@ on:
 
 # 2. Define the jobs to run
 jobs:
-    test:
-        timeout-minutes: 60
-        runs-on: ubuntu-latest
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-        steps:
-          - name: Checkout Repo
-            uses: actions/checkout@v4
+      # --- NODE CACHE ALREADY ENABLED HERE ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm' # This caches the global npm registry automatically
 
-          - name: Setup Node.js
-            uses: actions/setup-node@v4
-            with:
-              node-version: '18'
-              cache: 'npm'
+      - name: Install Node Dependencies
+        run: npm ci
 
-          - name: Install Dependencies
-            run: npm ci
+      # --- PLAYWRIGHT CACHE SETUP ---
+      - name: Cache Playwright Browsers
+        id: playwright-cache # We added an ID so we can check if it hit or missed
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
-          - name: Cache Playwright Browsers
-            uses: actions/cache@v4
-            with:
-              path: ~/.cache/ms-playwright
-              key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-              restore-keys: |
-                ${{ runner.os }}-playwright-
+      # Always install OS dependencies (Linux libraries) as the runner is fresh
+      - name: Install Playwright OS Dependencies
+        run: npx playwright install-deps
 
-          - name: Install Playwright Browsers
-            run : npx playwright install --with-deps
+      # ONLY download the heavy browsers if they were NOT found in the cache
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install
 
-          - name: Run Playwright Tests
-            run: npx playwright test tests/login-pom.spec.ts
+      - name: Run Playwright Tests
+        run: npx playwright test tests/login-pom.spec.ts
+        # --- SECRETS INJECTED HERE ---
+        env:
+          PRACTICE_AUTOMATION_URL: ${{ secrets.PRACTICE_AUTOMATION_URL }}
+          PRACTICE_AUTOMATION_USERNAME: ${{ secrets.PRACTICE_AUTOMATION_USERNAME }}
+          PRACTICE_AUTOMATION_PASSWORD: ${{ secrets.PRACTICE_AUTOMATION_PASSWORD }}
+          PRACTICE_AUTOMATION_WRONG_PASSWORD: ${{ secrets.PRACTICE_AUTOMATION_WRONG_PASSWORD }}
+          PRACTICE_AUTOMATION_WRONG_USERNAME: ${{ secrets.PRACTICE_AUTOMATION_WRONG_USERNAME }}
+          PRACTICE_AUTOMATION_SUCCESS_URL: ${{ secrets.PRACTICE_AUTOMATION_SUCCESS_URL }}
 
-          # 3. Save the report so you can download it later           
-          - name: Upload Playwright Report
-            uses: actions/upload-artifact@v4
-            if: always() # Upload the report even if the tests fail
-            with:
-              name : playwright-report
-              path : playwright-report/
-              retention-days: 30
+      # 3. Save the report so you can download it later            
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always() # Upload the report even if the tests fail
+        with:
+          name : playwright-report
+          path : playwright-report/
+          retention-days: 30
