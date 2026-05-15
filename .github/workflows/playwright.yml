@@ -21,16 +21,19 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      # --- NODE CACHE ALREADY ENABLED HERE ---
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          cache: 'npm' # This caches the global npm registry automatically
 
-      - name: Install Dependencies
+      - name: Install Node Dependencies
         run: npm ci
 
+      # --- PLAYWRIGHT CACHE SETUP ---
       - name: Cache Playwright Browsers
+        id: playwright-cache # We added an ID so we can check if it hit or missed
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
@@ -38,8 +41,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
+      # Always install OS dependencies (Linux libraries) as the runner is fresh
+      - name: Install Playwright OS Dependencies
+        run: npx playwright install-deps
+
+      # ONLY download the heavy browsers if they were NOT found in the cache
       - name: Install Playwright Browsers
-        run : npx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install
 
       - name: Run Playwright Tests
         run: npx playwright test tests/login-pom.spec.ts
